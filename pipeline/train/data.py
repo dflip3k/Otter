@@ -724,7 +724,83 @@ def get_multi_instruction_dataset(args, tokenizer, epoch=0, floor=False):
 
     return dataloader
 
-    # return DataInfo(dataloader=dataloader, sampler=sampler, shared_epoch=shared_epoch)
+from pipeline.dataset_utils.coco_cap_dataset import CocoCapDataset
+
+def get_coco_caption_dataset(args, tokenizer, epoch=0, floor=False):
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
+    args.task = "pretrain"
+    args.tokenizer = tokenizer
+    coco_dataset = CocoCapDataset(args)
+
+    round_fn = math.floor if floor else math.ceil
+    global_batch_size = args.batch_size * args.world_size
+
+    num_samples = len(coco_dataset)  # 8
+    num_batches = round_fn(num_samples / global_batch_size)  # 2
+    args.workers = max(1, args.workers)  # 1
+    num_worker_batches = round_fn(
+        num_batches / args.workers
+    )  # per dataloader worker #2
+    num_batches = num_worker_batches * args.workers  # 2
+    num_samples = num_batches * global_batch_size  # 8
+
+    sampler = RandomSampler(coco_dataset)
+
+    dataloader = torch.utils.data.DataLoader(
+        coco_dataset,
+        sampler=sampler,
+        batch_size=args.batch_size,
+        num_workers=args.workers,
+        pin_memory=True,
+        drop_last=True,
+        collate_fn=coco_dataset.collate,
+    )
+
+    # add meta-data to dataloader instance for convenience
+    dataloader.num_batches = num_batches
+    dataloader.num_samples = num_samples
+
+    return dataloader
+
+
+from pipeline.dataset_utils.qa_dataset import QADataset
+
+def get_qa_dataset(args, tokenizer, epoch=0, floor=False):
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
+    args.task = "pretrain"
+    args.tokenizer = tokenizer
+    coco_dataset = QADataset(args)
+
+    round_fn = math.floor if floor else math.ceil
+    global_batch_size = args.batch_size * args.world_size
+
+    num_samples = len(coco_dataset)  # 8
+    num_batches = round_fn(num_samples / global_batch_size)  # 2
+    args.workers = max(1, args.workers)  # 1
+    num_worker_batches = round_fn(
+        num_batches / args.workers
+    )  # per dataloader worker #2
+    num_batches = num_worker_batches * args.workers  # 2
+    num_samples = num_batches * global_batch_size  # 8
+
+    sampler = RandomSampler(coco_dataset)
+
+    dataloader = torch.utils.data.DataLoader(
+        coco_dataset,
+        sampler=sampler,
+        batch_size=args.batch_size,
+        num_workers=args.workers,
+        pin_memory=True,
+        drop_last=True,
+        collate_fn=coco_dataset.collate,
+    )
+
+    # add meta-data to dataloader instance for convenience
+    dataloader.num_batches = num_batches
+    dataloader.num_samples = num_samples
+
+    return dataloader
+
 
 
 def get_dataset_fn(dataset_type):
@@ -736,6 +812,10 @@ def get_dataset_fn(dataset_type):
         return get_coco_vqa_dataset
     elif dataset_type == "multi_instruct":
         return get_multi_instruction_dataset
+    elif dataset_type == "coco_caption":
+        return get_coco_caption_dataset
+    elif dataset_type == "qa":
+        return get_qa_dataset
     else:
         raise ValueError(f"Unsupported dataset type: {dataset_type}")
 

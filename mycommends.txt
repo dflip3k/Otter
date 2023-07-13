@@ -1,0 +1,14 @@
+accelerate launch caption_ds.py \
+--pretrained_model_name_or_path=luodian/openflamingo-9b-hf \
+--dataset_resampled \
+--multi_instruct_path=/home/yabin/LAVIS/datasets/coco/annotations/coco_karpathy_train.json \
+--run_name=otter-9b \
+--batch_size=4 \
+--num_epochs=6 \
+--report_to_wandb \
+--cross_attn_every_n_layers=4 \
+--lr_scheduler=cosine \
+--delete_previous_checkpoint \
+--learning_rate=1e-5 \
+--data_root=/home/yabin/LAVIS/datasets/coco/images
+
